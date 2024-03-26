@@ -13,8 +13,6 @@ services:
     command: sh entrypoint.sh
     env_file:
      - .env
-    environment:
-      - POSTGRES_PORT=5432
     depends_on:
      - postgres
 
