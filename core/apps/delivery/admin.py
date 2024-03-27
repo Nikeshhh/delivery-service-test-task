@@ -9,7 +9,7 @@ class LocationAdmin(admin.ModelAdmin):
 
 @admin.register(DeliveryCar)
 class DeliveryCarAdmin(admin.ModelAdmin):
-    ...
+    raw_id_fields = ('current_location', )
 
 @admin.register(Cargo)
 class CargoAdmin(admin.ModelAdmin):

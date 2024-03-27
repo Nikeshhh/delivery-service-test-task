@@ -31,6 +31,10 @@ class Location(models.Model):
     def __str__(self) -> str:
         return f'{self.state}:{self.city} ({self.longitude}, {self.latitude})'
     
+    @property
+    def coordinates(self):
+        return (self.latitude, self.longitude)
+    
     @classmethod
     def get_random_location(cls) -> 'Location':
         return choice(cls.objects.all())
