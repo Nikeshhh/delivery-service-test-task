@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.apps.delivery.models import Cargo, Location
+from core.apps.delivery.models import Cargo, DeliveryCar, Location
 
 
 class CreateCargoSerializer(serializers.ModelSerializer):
@@ -50,5 +50,23 @@ class RetreiveCargoSerializer(serializers.Serializer):
     cars = DeliveryCarSerializer(many=True)
 
 
+class EditCargoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cargo
+        fields = ('weight', 'description')
+
+
+class RetrieveDeliveryCarSerializer(serializers.ModelSerializer):
+    current_location = LocationSerializer()
+    class Meta:
+        model = DeliveryCar
+        fields = ('current_location', 'car_number', 'capacity')
+
 class EditDeliveryCarSerializer(serializers.Serializer):
-    ...
+    zip_code = serializers.CharField()
+
+    def update(self, instance, validated_data):
+        location = Location.objects.get(zip_code=validated_data['zip_code'])
+        instance.current_location = location
+        instance.save()
+        return instance

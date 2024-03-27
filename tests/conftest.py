@@ -41,21 +41,22 @@ def create_locations():
 
 
 @pytest.fixture
-def create_cargos():
+def cargos():
     loc1 = Location.objects.get(zip_code='10029')
     loc2 = Location.objects.get(zip_code='10024')
-    Cargo.objects.create(
+    cargo1 = Cargo.objects.create(
         pick_up_location=loc1,
         delivery_location=loc2,
         weight=555,
         description='very nice cargo'
     )
-    Cargo.objects.create(
+    cargo2 = Cargo.objects.create(
         pick_up_location=loc2,
         delivery_location=loc1,
         weight=555,
         description='very nice cargo2'
     )
+    return [cargo1, cargo2]
 
 
 @pytest.fixture
@@ -75,3 +76,4 @@ def create_cars():
         current_location=Location.objects.get(zip_code='99999'),
         capacity=1000
     )
+    return [car, car2, far_away_car]
