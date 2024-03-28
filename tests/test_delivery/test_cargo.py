@@ -1,7 +1,7 @@
 from django.urls import reverse
 import pytest
 
-from core.apps.delivery.models import Cargo, DeliveryCar, Location
+from core.apps.delivery.models import Cargo
 
 
 @pytest.mark.django_db
@@ -84,4 +84,15 @@ def test_cargo_delete(client, cargos):
 
     assert response.status_code == 204
 
-    assert Cargo.objects.count() == 1
+    assert Cargo.objects.count() == 2
+
+
+@pytest.mark.django_db
+def test_filter_by_max_weight(client, cargos):
+    url = reverse('cargo-list') + '?max_weight=580'
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+
+    assert len(response.data) == 2

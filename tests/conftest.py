@@ -56,7 +56,13 @@ def cargos():
         weight=555,
         description='very nice cargo2'
     )
-    return [cargo1, cargo2]
+    cargo3 = Cargo.objects.create(
+        pick_up_location=loc2,
+        delivery_location=loc1,
+        weight=600,
+        description='very nice cargo2'
+    )
+    return [cargo1, cargo2, cargo3]
 
 
 @pytest.fixture

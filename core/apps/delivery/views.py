@@ -13,6 +13,7 @@ from core.apps.delivery.serializers import (
     RetrieveDeliveryCarSerializer
 )
 from core.apps.delivery.services import calculate_distance
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 
 class CargoViewSet(RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin, GenericViewSet):
@@ -20,6 +21,13 @@ class CargoViewSet(RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin, Gene
 
     def get_queryset(self):
         return super().get_queryset()
+    
+    def filter_queryset(self, queryset):
+        if self.action == 'list':
+            if max_weight := self.request.query_params.get('max_weight'):
+                print(max_weight)
+                return queryset.filter(weight__lte=max_weight)
+        return super().filter_queryset(queryset)
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -31,6 +39,7 @@ class CargoViewSet(RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin, Gene
         elif self.action in ('update', 'partial_update'):
             return EditCargoSerializer
         
+    @extend_schema(summary='Создать посылку')
     def create(self, request: HttpRequest, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
@@ -39,6 +48,7 @@ class CargoViewSet(RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin, Gene
         else:
             return Response({'success': False, 'errors': serializer.errors}, HTTP_400_BAD_REQUEST)
         
+    @extend_schema(summary='Получить посылку по ID')
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         cars_queryset = DeliveryCar.objects\
@@ -50,16 +60,44 @@ class CargoViewSet(RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin, Gene
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
+    @extend_schema(
+            summary='Получить список грузов',
+            parameters=[
+                OpenApiParameter(name='max_weight',
+                                description='Отфильтровать по весу', required=False, type=str),
+                OpenApiParameter(name='max_distance', 
+                                description='Отфильтровать машины по дистанции', required=False, type=str),
+            ]
+    )
     def list(self, request: HttpRequest, *args, **kwargs):
-        cargo_queryset = Cargo.objects.select_related()
+        cargo_queryset = self.filter_queryset(self.get_queryset())
         cars_queryset = DeliveryCar.objects.select_related()
+
+        max_distance = request.query_params.get('max_distance')
+        if max_distance:
+            max_distance = int(max_distance)
+        else:
+            max_distance = 450
+            
         for cargo in cargo_queryset:
             cargo.car_count = len(list(filter(
-                lambda x: calculate_distance(x.current_location, cargo.pick_up_location) < 450,
+                lambda x: calculate_distance(x.current_location, cargo.pick_up_location) < max_distance,
                 cars_queryset
             )))
         cargo_serializer = self.get_serializer(cargo_queryset, many=True)
         return Response(cargo_serializer.data)
+    
+    @extend_schema(summary='Редактировать груз по ID')
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+    
+    @extend_schema(summary='Редактировать груз по ID (patch)')
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+    
+    @extend_schema(summary='Удалить груз по ID')
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
 
 
 class DeliveryCarViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet):
@@ -71,6 +109,15 @@ class DeliveryCarViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet):
             return EditDeliveryCarSerializer
         return super().get_serializer_class()
     
+    @extend_schema(summary='Получить список машин')
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @extend_schema(summary='Получить данные о машине по ID')
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+    @extend_schema(summary='Обновить локацию машины по ZIP коду')
     def partial_update(self, request: HttpRequest, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance=instance, data=request.data, partial=True)
