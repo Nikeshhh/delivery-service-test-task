@@ -17,7 +17,8 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 
 class CargoViewSet(RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin, GenericViewSet):
-    queryset = Cargo.objects.select_related()
+    queryset = Cargo.objects\
+        .select_related('pick_up_location', 'delivery_location')
 
     def get_queryset(self):
         return super().get_queryset()
@@ -70,8 +71,11 @@ class CargoViewSet(RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin, Gene
             ]
     )
     def list(self, request: HttpRequest, *args, **kwargs):
+        """
+        Получение списка грузов.
+        """
         cargo_queryset = self.filter_queryset(self.get_queryset())
-        cars_queryset = DeliveryCar.objects.select_related()
+        cars_queryset = DeliveryCar.objects.select_related('current_location')
 
         max_distance = request.query_params.get('max_distance')
         if max_distance:
@@ -81,7 +85,9 @@ class CargoViewSet(RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin, Gene
             
         for cargo in cargo_queryset:
             cargo.car_count = len(list(filter(
-                lambda x: calculate_distance(x.current_location, cargo.pick_up_location) < max_distance,
+                lambda car: 
+                calculate_distance(car.current_location, cargo.pick_up_location) < max_distance and
+                                                                        car.capacity >= cargo.weight,
                 cars_queryset
             )))
         cargo_serializer = self.get_serializer(cargo_queryset, many=True)
@@ -101,7 +107,7 @@ class CargoViewSet(RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin, Gene
 
 
 class DeliveryCarViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet):
-    queryset = DeliveryCar.objects.select_related()
+    queryset = DeliveryCar.objects.select_related('current_location')
     serializer_class = RetrieveDeliveryCarSerializer
 
     def get_serializer_class(self):
