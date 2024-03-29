@@ -40,7 +40,7 @@ class CargoViewSet(RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin, Gene
         elif self.action in ('update', 'partial_update'):
             return EditCargoSerializer
         
-    @extend_schema(summary='Создать посылку')
+    @extend_schema(summary='Создать груз')
     def create(self, request: HttpRequest, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
@@ -52,12 +52,16 @@ class CargoViewSet(RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin, Gene
     @extend_schema(summary='Получить посылку по ID')
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
+
         cars_queryset = DeliveryCar.objects\
             .select_related('current_location')\
             .only('current_location', 'car_number')
+        
+        # Расчет расстояния от каждой машины
         for car in cars_queryset:
             car.distance = calculate_distance(car.current_location, instance.pick_up_location)
         instance.cars = cars_queryset
+
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
@@ -73,10 +77,13 @@ class CargoViewSet(RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin, Gene
     def list(self, request: HttpRequest, *args, **kwargs):
         """
         Получение списка грузов.
+        :param: max_distance - отбирает только такие машины, расстояние до которых < max_distance
+        :param: max_weight - отбирает толькое такие грузы, вес которых < max_weight
         """
         cargo_queryset = self.filter_queryset(self.get_queryset())
         cars_queryset = DeliveryCar.objects.select_related('current_location')
 
+        # Начальное значение параментра max_distance
         max_distance = request.query_params.get('max_distance')
         if max_distance:
             max_distance = int(max_distance)
@@ -84,6 +91,7 @@ class CargoViewSet(RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin, Gene
             max_distance = 450
             
         for cargo in cargo_queryset:
+            # Рассчет количества машин
             cargo.car_count = len(list(filter(
                 lambda car: 
                 calculate_distance(car.current_location, cargo.pick_up_location) < max_distance and
