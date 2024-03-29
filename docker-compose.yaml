@@ -46,6 +46,7 @@ services:
       - .:/app/
 
   celery-beat:
+    restart: always
     build:
       context: ./
       dockerfile: Dockerfile
