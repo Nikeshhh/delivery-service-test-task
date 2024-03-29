@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     # Third party packages
     'rest_framework',
     'drf_spectacular',
+    'django_celery_beat',
 ]
 
 MIDDLEWARE = [
@@ -139,3 +140,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
+
+# Celery Settings
+
+CELERY_BEAT_SCHEDULE = {
+    'update_locations_of_cars': {
+        'task': 'core.apps.delivery.tasks.update_locations',
+        'schedule': 180,
+    }
+}
+
+CELERY_BROKER_URL = 'redis://redis:6379/2'

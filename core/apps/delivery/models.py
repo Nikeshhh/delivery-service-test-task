@@ -94,3 +94,7 @@ class DeliveryCar(models.Model):
 
     def __str__(self) -> str:
         return f'{self.car_number}:{self.capacity} Сейчас в {self.current_location}'
+    
+    def set_random_location(self) -> None:
+        self.current_location = Location.get_random_location()
+        self.save()
